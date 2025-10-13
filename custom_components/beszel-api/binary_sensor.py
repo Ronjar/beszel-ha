@@ -5,7 +5,11 @@ from .const import DOMAIN
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
-    for system in coordinator.data:
+
+    # Get systems from coordinator data
+    systems = coordinator.data['systems']
+
+    for system in systems:
         entities.append(BeszelStatusBinarySensor(coordinator, system))
     async_add_entities(entities)
 
@@ -16,8 +20,8 @@ class BeszelStatusBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def system(self):
-        # Always return the latest system object by id
-        for s in self.coordinator.data:
+        systems = self.coordinator.data['systems']
+        for s in systems:
             if s.id == self._system_id:
                 return s
         return None
