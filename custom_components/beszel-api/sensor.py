@@ -30,8 +30,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                         LOGGER.info(f"Created EFS sensor for {system.name} - {disk_name}")
 
                 # Create battery sensor if data is available
-                if system_stats and 'battery' in system_stats and isinstance(system_stats['bat'], list):
-                    entities.append(BeszelBatterySensor(coordinator, system))
+                if system_stats and 'bat' in system_stats and isinstance(system_stats['bat'], list):
+                    entities.append(BeszelBatterySensor(coordinator, system, system_stats))
 
             except Exception as e:
                 LOGGER.error(f"Failed to create sensors for system {system.name if hasattr(system, 'name') else 'unknown'}: {e}")
@@ -263,6 +263,10 @@ class BeszelEFSDiskSensor(BeszelBaseSensor):
 
 
 class BeszelBatterySensor(BeszelBaseSensor):
+    def __init__(self, coordinator, system, stats_data):
+        super().__init__(coordinator, system)
+        self._stats_data = stats_data
+
     @property
     def unique_id(self):
         return f"beszel_{self._system_id}_battery"
@@ -285,7 +289,9 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def native_value(self):
-        return self.system.info.get("battery")[0] if self.system else None
+        if not self._stats_data:
+            return None
+        return self._stats_data.get("bat")[0] if self.system else None
 
     @property
     def native_unit_of_measurement(self):
