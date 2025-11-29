@@ -1,5 +1,6 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.icon import icon_for_battery_level
 from .const import DOMAIN, LOGGER
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -277,7 +278,13 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def icon(self):
-        return "mdi:battery"
+        if not self._stats_data:
+            return "mdi:battery-unknown"
+        level, state = self._stats_data.get("bat")
+        # https://github.com/henrygd/beszel/blob/4d05bfdff0ec90b68e820ad5dc32a5c4bccf8f0f/internal/site/src/lib/enums.ts#L41-L48
+        charging = state == 3
+
+        return icon_for_battery_level(level, charging)
 
     @property
     def device_class(self):
@@ -291,7 +298,7 @@ class BeszelBatterySensor(BeszelBaseSensor):
     def native_value(self):
         if not self._stats_data:
             return None
-        return self._stats_data.get("bat")[0] if self.system else None
+        return self._stats_data.get("bat")[0]
 
     @property
     def native_unit_of_measurement(self):
