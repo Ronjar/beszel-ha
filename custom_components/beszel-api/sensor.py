@@ -1,6 +1,11 @@
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorDeviceClass,
+    SensorStateClass,
+)
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.icon import icon_for_battery_level
+
 from .const import DOMAIN, LOGGER
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -287,11 +292,11 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def device_class(self):
-        return "battery"
+        return SensorDeviceClass.BATTERY
 
     @property
     def state_class(self):
-        return "measurement"
+        return SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self):
