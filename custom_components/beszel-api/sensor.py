@@ -27,12 +27,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 # Create EFS sensors if EFS data is available
                 if system_stats and 'efs' in system_stats and isinstance(system_stats['efs'], dict):
                     for disk_name in system_stats['efs'].keys():
-                        entities.append(BeszelEFSDiskSensor(coordinator, system, disk_name, system_stats))
+                        entities.append(BeszelEFSDiskSensor(coordinator, system, disk_name))
                         LOGGER.info(f"Created EFS sensor for {system.name} - {disk_name}")
 
                 # Create battery sensor if data is available
                 if system_stats and 'bat' in system_stats and isinstance(system_stats['bat'], list):
-                    entities.append(BeszelBatterySensor(coordinator, system, system_stats))
+                    entities.append(BeszelBatterySensor(coordinator, system))
 
             except Exception as e:
                 LOGGER.error(f"Failed to create sensors for system {system.name if hasattr(system, 'name') else 'unknown'}: {e}")
@@ -56,6 +56,10 @@ class BeszelBaseSensor(CoordinatorEntity, SensorEntity):
             if s.id == self._system_id:
                 return s
         return None
+
+    @property
+    def stats_data(self):
+        return self.coordinator.data.get('stats', {}).get(self._system_id, {})
 
     @property
     def device_info(self):
@@ -208,10 +212,9 @@ class BeszelUptimeSensor(BeszelBaseSensor):
         return "minutes"
 
 class BeszelEFSDiskSensor(BeszelBaseSensor):
-    def __init__(self, coordinator, system, disk_name, stats_data):
+    def __init__(self, coordinator, system, disk_name):
         super().__init__(coordinator, system)
         self._disk_name = disk_name
-        self._stats_data = stats_data
 
     @property
     def unique_id(self):
@@ -227,10 +230,10 @@ class BeszelEFSDiskSensor(BeszelBaseSensor):
 
     @property
     def native_value(self):
-        if not self._stats_data:
+        if not self.stats_data:
             return None
 
-        efs_data = self._stats_data.get('efs', {})
+        efs_data = self.stats_data.get('efs', {})
         disk_data = efs_data.get(self._disk_name, {})
 
         total_space = disk_data.get('d')
@@ -248,10 +251,10 @@ class BeszelEFSDiskSensor(BeszelBaseSensor):
     @property
     def extra_state_attributes(self):
         """Return additional state attributes for the EFS disk."""
-        if not self._stats_data:
+        if not self.stats_data:
             return {}
 
-        efs_data = self._stats_data.get('efs', {})
+        efs_data = self.stats_data.get('efs', {})
         disk_data = efs_data.get(self._disk_name, {})
 
         return {
@@ -264,10 +267,6 @@ class BeszelEFSDiskSensor(BeszelBaseSensor):
 
 
 class BeszelBatterySensor(BeszelBaseSensor):
-    def __init__(self, coordinator, system, stats_data):
-        super().__init__(coordinator, system)
-        self._stats_data = stats_data
-
     @property
     def unique_id(self):
         return f"beszel_{self._system_id}_battery"
@@ -278,9 +277,9 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def icon(self):
-        if not self._stats_data:
+        if not self.stats_data and "bat" not in self.stats_data:
             return "mdi:battery-unknown"
-        level, state = self._stats_data.get("bat")
+        level, state = self.stats_data.get("bat")
         # https://github.com/henrygd/beszel/blob/4d05bfdff0ec90b68e820ad5dc32a5c4bccf8f0f/internal/site/src/lib/enums.ts#L41-L48
         charging = state == 3
 
@@ -296,9 +295,9 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def native_value(self):
-        if not self._stats_data:
+        if not self.stats_data:
             return None
-        return self._stats_data.get("bat")[0]
+        return self.stats_data.get("bat")[0]
 
     @property
     def native_unit_of_measurement(self):
