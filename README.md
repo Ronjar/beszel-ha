@@ -23,6 +23,7 @@ After installing the following entities will exposed as sensors (more to come):
 - Temperature (°C)
 - Bandwidth (Mbit/s)
 - RAM (Percentage)
+- Battery (Percentage)
 
 For example if your machine is named *test*, CPU will be available as ```sensor.test_cpu```
 
