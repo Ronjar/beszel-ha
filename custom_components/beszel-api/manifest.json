@@ -1,7 +1,7 @@
 {
   "domain": "beszel_api",
   "name": "Beszel API",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "documentation": "https://github.com/ronjar/beszel-ha",
   "issue_tracker": "https://github.com/Ronjar/beszel-ha/issues",
   "requirements": ["pocketbase>=0.15.0"],
@@ -9,3 +9,4 @@
   "dependencies": [],
   "codeowners": ["@ronjar"]
 }
+
