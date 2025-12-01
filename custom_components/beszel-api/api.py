@@ -4,7 +4,7 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 class BeszelApiClient:
-    def __init__(self, url, username, password):
+    def __init__(self, url, username: str | None = None, password: str | None = None):
         self._url = url.rstrip("/")
         self._username = username
         self._password = password
@@ -15,7 +15,11 @@ class BeszelApiClient:
         if self._client is None:
             try:
                 self._client = PocketBase(self._url)
-                self._client.collection("users").auth_with_password(self._username, self._password)
+                if self._username and self._password:
+                    self._client.collection("users").auth_with_password(
+                        self._username,
+                        self._password,
+                    )
             except Exception as e:
                 LOGGER.error(f"Failed to initialize PocketBase client: {e}")
                 raise
