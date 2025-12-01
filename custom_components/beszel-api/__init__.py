@@ -10,8 +10,8 @@ async def async_setup_entry(hass, entry):
     hass.data.setdefault(DOMAIN, {})
 
     url = entry.data[CONF_URL]
-    username = entry.data[CONF_USERNAME]
-    password = entry.data[CONF_PASSWORD]
+    username = entry.data.get(CONF_USERNAME, None)
+    password = entry.data.get(CONF_PASSWORD, None)
     client = BeszelApiClient(url, username, password)
 
     async def async_update_data():
