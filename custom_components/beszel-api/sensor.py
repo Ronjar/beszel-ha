@@ -1,4 +1,8 @@
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorDeviceClass,
+    SensorStateClass,
+)
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, LOGGER
 
@@ -88,6 +92,11 @@ class BeszelCPUSensor(BeszelBaseSensor):
     def native_unit_of_measurement(self):
         return "%"
 
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+
 class BeszelRAMSensor(BeszelBaseSensor):
     @property
     def unique_id(self):
@@ -108,6 +117,11 @@ class BeszelRAMSensor(BeszelBaseSensor):
     @property
     def native_unit_of_measurement(self):
         return "%"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
 
 class BeszelDiskSensor(BeszelBaseSensor):
 
@@ -131,6 +145,11 @@ class BeszelDiskSensor(BeszelBaseSensor):
     def native_unit_of_measurement(self):
         return "%"
 
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+
 class BeszelBandwidthSensor(BeszelBaseSensor):
     @property
     def unique_id(self):
@@ -152,6 +171,11 @@ class BeszelBandwidthSensor(BeszelBaseSensor):
     def native_unit_of_measurement(self):
         return "MB/s"
 
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+
 class BeszelTemperatureSensor(BeszelBaseSensor):
     @property
     def unique_id(self):
@@ -167,11 +191,16 @@ class BeszelTemperatureSensor(BeszelBaseSensor):
 
     @property
     def device_class(self):
-        return "temperature"
+        return SensorDeviceClass.TEMPERATURE
 
     @property
     def native_unit_of_measurement(self):
         return "°C"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
 
 class BeszelUptimeSensor(BeszelBaseSensor):
     @property
@@ -196,7 +225,7 @@ class BeszelUptimeSensor(BeszelBaseSensor):
 
     @property
     def state_class(self):
-        return "total_increasing"
+        return SensorStateClass.TOTAL_INCREASING
 
     @property
     def native_unit_of_measurement(self):
@@ -239,6 +268,10 @@ class BeszelEFSDiskSensor(BeszelBaseSensor):
     @property
     def native_unit_of_measurement(self):
         return "%"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
 
     @property
     def extra_state_attributes(self):
