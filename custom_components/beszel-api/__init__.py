@@ -1,7 +1,7 @@
 import asyncio
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, UPDATE_INTERVAL, LOGGER
+from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL, UPDATE_INTERVAL, LOGGER
 from .api import BeszelApiClient
 
 PLATFORMS = ["sensor", "binary_sensor"]
@@ -12,7 +12,8 @@ async def async_setup_entry(hass, entry):
     url = entry.data[CONF_URL]
     username = entry.data.get(CONF_USERNAME, None)
     password = entry.data.get(CONF_PASSWORD, None)
-    client = BeszelApiClient(url, username, password)
+    verify_ssl = entry.data.get(CONF_VERIFY_SSL, True)
+    client = BeszelApiClient(url, username, password, verify_ssl)
 
     async def async_update_data():
         try:

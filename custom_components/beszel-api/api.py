@@ -1,20 +1,31 @@
-from pocketbase import PocketBase
 import logging
+
+import httpx
+from pocketbase import PocketBase
 
 LOGGER = logging.getLogger(__name__)
 
+
 class BeszelApiClient:
-    def __init__(self, url, username: str | None = None, password: str | None = None):
+    def __init__(
+        self,
+        url,
+        username: str | None = None,
+        password: str | None = None,
+        verify_ssl: bool = True,
+    ):
         self._url = url.rstrip("/")
         self._username = username
         self._password = password
+        self._verify_ssl = verify_ssl
         self._client = None
 
     def _ensure_client(self):
         """Initialize the PocketBase client if not already done"""
         if self._client is None:
             try:
-                self._client = PocketBase(self._url)
+                httpx_client = httpx.Client(verify=self._verify_ssl)
+                self._client = PocketBase(self._url, http_client=httpx_client)
                 if self._username and self._password:
                     self._client.collection("users").auth_with_password(
                         self._username,
