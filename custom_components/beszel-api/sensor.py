@@ -25,6 +25,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 entities.append(BeszelBandwidthSensor(coordinator, system))
                 entities.append(BeszelTemperatureSensor(coordinator, system))
                 entities.append(BeszelUptimeSensor(coordinator, system))
+                entities.append(BeszelGPUSensor(coordinator, system))
 
                 # Get stats for this system
                 system_stats = stats_data.get(system.id, {})
@@ -97,6 +98,32 @@ class BeszelCPUSensor(BeszelBaseSensor):
     @property
     def native_value(self):
         return self.system.info.get("cpu") if self.system else None
+
+    @property
+    def native_unit_of_measurement(self):
+        return "%"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+
+class BeszelGPUSensor(BeszelBaseSensor):
+    @property
+    def unique_id(self):
+        return f"beszel_{self._system_id}_gpu"
+
+    @property
+    def name(self):
+        return f"{self.system.name} GPU" if self.system else None
+
+    @property
+    def icon(self):
+        return "mdi:expansion-card"
+
+    @property
+    def native_value(self):
+        return self.system.info.get("g",0.0) if self.system else None
 
     @property
     def native_unit_of_measurement(self):
@@ -335,4 +362,5 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def native_unit_of_measurement(self):
+
         return "%"
