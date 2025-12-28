@@ -1,0 +1,38 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Beszel API konfigurieren",
+        "description": "Gib deine Beszel API Verbindungsdaten ein",
+        "data": {
+          "url": "URL",
+          "username": "Benutzername (optional)",
+          "password": "Passwort (optional)",
+          "update_check": "Nach Updates suchen",
+            "verify_ssl": "Beszel API SSL Zertifikat überprüfen"
+        },
+        "data_description": {
+          "update_check": "Verbindet sich periodisch mit github.com, um nach neuen Releases zu suchen"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Beszel API ändern",
+        "description": "Ändere deine Beszel API Verbindungsdaten",
+        "data": {
+          "url": "URL",
+          "username": "Benutzername (optional)",
+          "password": "Passwort (optional)",
+          "update_check": "Nach Updates suchen",
+          "verify_ssl": "Beszel API SSL Zertifikat überprüfen"
+        },
+        "data_description": {
+          "update_check": "Verbindet sich periodisch mit github.com, um nach neuen Releases zu suchen"
+        }
+      }
+    }
+  }
+}

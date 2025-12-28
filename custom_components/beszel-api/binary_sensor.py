@@ -6,8 +6,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
 
-    # Get systems from coordinator data
-    systems = coordinator.data['systems']
+    systems = coordinator['systems']
 
     for system in systems:
         entities.append(BeszelStatusBinarySensor(coordinator, system))
@@ -20,7 +19,7 @@ class BeszelStatusBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def system(self):
-        systems = self.coordinator.data['systems']
+        systems = self.coordinator['systems']
         for s in systems:
             if s.id == self._system_id:
                 return s

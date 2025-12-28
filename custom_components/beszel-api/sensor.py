@@ -9,7 +9,8 @@ from homeassistant.helpers.icon import icon_for_battery_level
 from .const import DOMAIN, LOGGER
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data["coordinator"]
     entities = []
 
     try:
@@ -21,7 +22,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
             try:
                 entities.append(BeszelCPUSensor(coordinator, system))
                 entities.append(BeszelRAMSensor(coordinator, system))
+                entities.append(BeszelRAMTotalSensor(coordinator, system))
                 entities.append(BeszelDiskSensor(coordinator, system))
+                entities.append(BeszelDiskTotalSensor(coordinator, system))
                 entities.append(BeszelBandwidthSensor(coordinator, system))
                 entities.append(BeszelTemperatureSensor(coordinator, system))
                 entities.append(BeszelUptimeSensor(coordinator, system))
@@ -34,7 +37,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 if system_stats and 'efs' in system_stats and isinstance(system_stats['efs'], dict):
                     for disk_name in system_stats['efs'].keys():
                         entities.append(BeszelEFSDiskSensor(coordinator, system, disk_name))
-                        LOGGER.info(f"Created EFS sensor for {system.name} - {disk_name}")
+                        entities.append(BeszelDiskTotalSensor(coordinator, system, disk_name))
+                        LOGGER.info(f"Created EFS sensors for {system.name} - {disk_name}")
 
                 # Create battery sensor if data is available
                 if system_stats and 'bat' in system_stats and isinstance(system_stats['bat'], list):
@@ -362,5 +366,73 @@ class BeszelBatterySensor(BeszelBaseSensor):
 
     @property
     def native_unit_of_measurement(self):
-
         return "%"
+
+
+class BeszelRAMTotalSensor(BeszelBaseSensor):
+    @property
+    def unique_id(self):
+        return f"beszel_{self._system_id}_ram_total"
+
+    @property
+    def name(self):
+        return f"{self.system.name} RAM Total" if self.system else None
+
+    @property
+    def icon(self):
+        return "mdi:chip"
+
+    @property
+    def native_value(self):
+        if not self.stats_data:
+            return None
+        return self.stats_data.get("m")
+
+    @property
+    def native_unit_of_measurement(self):
+        return "GB"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+
+class BeszelDiskTotalSensor(BeszelBaseSensor):
+    def __init__(self, coordinator, system, disk_name=None):
+        super().__init__(coordinator, system)
+        self._disk_name = disk_name
+
+    @property
+    def unique_id(self):
+        suffix = f"_{self._disk_name}" if self._disk_name else ""
+        return f"beszel_{self._system_id}_disk_total{suffix}"
+
+    @property
+    def name(self):
+        label = f" {self._disk_name}" if self._disk_name else ""
+        return f"{self.system.name} Disk Total{label}" if self.system else None
+
+    @property
+    def icon(self):
+        return "mdi:harddisk"
+
+    @property
+    def native_value(self):
+        if not self.stats_data:
+            return None
+
+        if self._disk_name:
+            disk_data = self.stats_data.get("efs", {}).get(self._disk_name, {})
+            if isinstance(disk_data, dict):
+                return disk_data.get("d")
+            return None
+
+        return self.stats_data.get("d")
+
+    @property
+    def native_unit_of_measurement(self):
+        return "GB"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
