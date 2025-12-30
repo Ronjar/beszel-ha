@@ -26,6 +26,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 entities.append(BeszelDiskSensor(coordinator, system))
                 entities.append(BeszelDiskTotalSensor(coordinator, system))
                 entities.append(BeszelBandwidthSensor(coordinator, system))
+                entities.append(BeszelNetworkReceiveSensor(coordinator, system))
+                entities.append(BeszelNetworkSendSensor(coordinator, system))
                 entities.append(BeszelTemperatureSensor(coordinator, system))
                 entities.append(BeszelUptimeSensor(coordinator, system))
                 entities.append(BeszelGPUSensor(coordinator, system))
@@ -207,6 +209,58 @@ class BeszelBandwidthSensor(BeszelBaseSensor):
     @property
     def native_value(self):
         return self.system.info.get("b") if self.system else None
+
+    @property
+    def native_unit_of_measurement(self):
+        return "MB/s"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+
+class BeszelNetworkReceiveSensor(BeszelBaseSensor):
+    @property
+    def unique_id(self):
+        return f"beszel_{self._system_id}_network_receive"
+
+    @property
+    def name(self):
+        return f"{self.system.name} Network Receive" if self.system else None
+
+    @property
+    def icon(self):
+        return "mdi:download-network"
+
+    @property
+    def native_value(self):
+        return self.stats_data.get("nr") if self.system else None
+
+    @property
+    def native_unit_of_measurement(self):
+        return "MB/s"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+        
+        
+class BeszelNetworkSendSensor(BeszelBaseSensor):
+    @property
+    def unique_id(self):
+        return f"beszel_{self._system_id}_network_send"
+
+    @property
+    def name(self):
+        return f"{self.system.name} Network Send" if self.system else None
+
+    @property
+    def icon(self):
+        return "mdi:upload-network"
+
+    @property
+    def native_value(self):
+        return self.stats_data.get("ns") if self.system else None
 
     @property
     def native_unit_of_measurement(self):
