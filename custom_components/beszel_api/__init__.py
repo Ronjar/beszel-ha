@@ -40,7 +40,33 @@ async def async_setup_entry(hass, entry):
                     LOGGER.warning(f"Failed to fetch stats for system {system.id}: {e}")
                     stats_data[system.id] = {}
 
-            return {"systems": systems, "stats": stats_data}
+            # Fetch S.M.A.R.T. devices data
+            smart_devices = {}
+            try:
+                all_smart = await hass.async_add_executor_job(client.get_smart_devices)
+                for device in all_smart:
+                    system_id = getattr(device, 'system', None)
+                    if system_id:
+                        if system_id not in smart_devices:
+                            smart_devices[system_id] = []
+                        smart_devices[system_id].append({
+                            'id': device.id,
+                            'name': getattr(device, 'name', ''),
+                            'model': getattr(device, 'model', ''),
+                            'state': getattr(device, 'state', ''),
+                            'temp': getattr(device, 'temp', None),
+                            'capacity': getattr(device, 'capacity', 0),
+                            'hours': getattr(device, 'hours', 0),
+                            'cycles': getattr(device, 'cycles', 0),
+                            'type': getattr(device, 'type', ''),
+                            'serial': getattr(device, 'serial', ''),
+                            'firmware': getattr(device, 'firmware', ''),
+                        })
+                LOGGER.debug(f"Loaded S.M.A.R.T. data for {len(all_smart)} devices")
+            except Exception as e:
+                LOGGER.warning(f"Failed to fetch S.M.A.R.T. devices: {e}")
+
+            return {"systems": systems, "stats": stats_data, "smart_devices": smart_devices}
         except Exception as err:
             LOGGER.error(f"Error fetching systems: {err}")
             raise UpdateFailed(f"Error fetching systems: {err}")

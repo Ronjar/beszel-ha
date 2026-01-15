@@ -60,6 +60,23 @@ class BeszelApiClient:
             # Return None if no stats found or error occurs
             return None
 
+    def get_smart_devices(self, system_id=None):
+        """Get S.M.A.R.T. data for disks"""
+        try:
+            self._ensure_client()
+            if system_id:
+                # Get devices for specific system
+                records = self._client.collection("smart_devices").get_full_list(
+                    query_params={"filter": f"system = '{system_id}'"}
+                )
+            else:
+                # Get all devices
+                records = self._client.collection("smart_devices").get_full_list()
+            return records
+        except Exception as e:
+            LOGGER.error(f"Failed to fetch S.M.A.R.T. devices: {e}")
+            return []
+
 
 class BeszelUpdateApi:
 
