@@ -11,7 +11,7 @@
     - *password*: The password to the user
 5. The API will pull the data and reload every 2 minutes
 
-Currently all machines are added, selection will be added later (you can change this yourself by creating a new user in Beszels Pocketbas and adding this user only to the machines you want to be monitored).
+Currently all machines are added, selection will be added later (you can change this yourself by creating a new user in Beszel's PocketBase and adding this user only to the machines you want to be monitored).
 
 # Usage
 After installing the following entities will exposed as sensors (more to come):
