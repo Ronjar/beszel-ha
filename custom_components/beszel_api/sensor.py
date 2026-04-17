@@ -169,7 +169,16 @@ class BeszelRAMSensor(BeszelBaseSensor):
     @property
     def state_class(self):
         return SensorStateClass.MEASUREMENT
-    
+
+    @property
+    def extra_state_attributes(self):
+        """Total and Used RAM in GB"""
+
+        attributes = {}
+        attributes['ram_used_gb'] = self.stats_data.get("mu")
+        attributes['ram_total_gb'] = self.stats_data.get("m")
+
+        return attributes
 
 class BeszelSWAPSensor(BeszelBaseSensor):
     @property
@@ -199,7 +208,17 @@ class BeszelSWAPSensor(BeszelBaseSensor):
     @property
     def state_class(self):
         return SensorStateClass.MEASUREMENT
-    
+
+    @property
+    def extra_state_attributes(self):
+        """Total and Used SWAP in GB"""
+
+        attributes = {}
+        attributes['swap_used_gb'] = self.stats_data.get("su")
+        attributes['swap_total_gb'] = self.stats_data.get("s")
+
+        return attributes
+
 
 class BeszelDiskSensor(BeszelBaseSensor):
 
@@ -226,6 +245,16 @@ class BeszelDiskSensor(BeszelBaseSensor):
     @property
     def state_class(self):
         return SensorStateClass.MEASUREMENT
+
+    @property
+    def extra_state_attributes(self):
+        """Total and Used DISK in GB"""
+
+        attributes = {}
+        attributes['disk_used_gb'] = self.stats_data.get("du")
+        attributes['disk_total_gb'] = self.stats_data.get("d")
+
+        return attributes
 
 
 class BeszelBandwidthSensor(BeszelBaseSensor):
