@@ -79,10 +79,8 @@ class BeszelApiClient:
 
 
 class BeszelUpdateApi:
-
-    def __init__(self, url: str, timeout: int = 10):
-        self.base_url = url.rstrip("/") if url else url
-        self.timeout = timeout
+    def __init__(self, api_client: BeszelApiClient):
+        self.api_client = api_client
 
     def _remove_version_prefix(self, v: str | None) -> str | None:
         if not v:
@@ -103,47 +101,6 @@ class BeszelUpdateApi:
                 break
         return tuple(parts)
 
-    def get_hub_version(self) -> str | None:
-        """Fetch the base URL and extract HUB_VERSION from HTML."""
-        import requests
-        import re
-
-        if not self.base_url:
-            LOGGER.debug("No base_url configured for BeszelUpdateApi")
-            return None
-
-        url = self.base_url if self.base_url.startswith(("http://", "https://")) else f"http://{self.base_url}"
-        try:
-            r = requests.get(url, timeout=self.timeout)
-            r.raise_for_status()
-            match = re.search(r'HUB_VERSION\s*:\s*"([^"]+)"', r.text)
-            if match:
-                version = self._remove_version_prefix(match.group(1))
-                return version
-            LOGGER.debug("HUB_VERSION not found")
-            return None
-        except Exception as e:
-            LOGGER.error("Error fetching hub HTML: %s", e)
-            return None
-
-    def get_latest_release(self) -> tuple[str | None, str | None]:
-        """Query GitHub releases API and return (tag_name, html_url)."""
-        import requests
-        api_url = f"https://api.github.com/repos/henrygd/beszel/releases/latest"
-        headers = {"Accept": "application/vnd.github.v3+json"}
-        try:
-            r = requests.get(api_url, headers=headers, timeout=self.timeout)
-            r.raise_for_status()
-            j = r.json()
-            tag = j.get("tag_name")
-            html = j.get("html_url")
-            tag_norm = self._remove_version_prefix(tag)
-            LOGGER.debug("GitHub latest release: %s (%s)", tag_norm, html)
-            return tag_norm, html
-        except Exception as e:
-            LOGGER.error("Error fetching latest GitHub release: %s", e)
-            return None, None
-
     def get_update_info(self) -> dict:
         """
         Returns:
@@ -151,26 +108,49 @@ class BeszelUpdateApi:
             "hub_version": <installed version or None>,
             "latest_version": <latest release tag or None>,
             "latest_release_url": <html_url or None>,
-            "update_available": <bool>
+            "update_available": <bool>,
+            "check_update": <bool>
           }
         """
-        installed = self.get_hub_version()
-        latest, latest_url = self.get_latest_release()
-
-        installed_t = self._to_tuple(installed)
-        latest_t = self._to_tuple(latest)
-
-        update_available = False
         try:
+            self.api_client._ensure_client()
+            
+            info_res = self.api_client._client.send("/api/beszel/info", {"method": "GET"})
+            hub_version = self._remove_version_prefix(info_res.get("v"))
+            check_update = info_res.get("cu", False)
+
+            latest_version = None
+            latest_release_url = None
+
+            if check_update:
+                update_res = self.api_client._client.send("/api/beszel/update", {"method": "GET"})
+                latest_version = self._remove_version_prefix(update_res.get("v"))
+                latest_release_url = update_res.get("url")
+
+            installed_t = self._to_tuple(hub_version)
+            latest_t = self._to_tuple(latest_version)
+
+            update_available = False
             if installed_t and latest_t:
                 update_available = latest_t > installed_t
-        except Exception as e:
-            LOGGER.debug("Version comparison failed: %s", e)
-            update_available = False
+            
+            if not update_available:
+                latest_version = hub_version
 
-        return {
-            "hub_version": installed,
-            "latest_version": latest,
-            "latest_release_url": latest_url,
-            "update_available": update_available,
-        }
+            result = {
+                "hub_version": hub_version,
+                "latest_version": latest_version,
+                "latest_release_url": latest_release_url,
+                "update_available": update_available,
+                "check_update": check_update,
+            }
+            return result
+        except Exception as e:
+            LOGGER.error("Error fetching update info from PocketBase API: %s", e)
+            return {
+                "hub_version": None,
+                "latest_version": None,
+                "latest_release_url": None,
+                "update_available": False,
+                "check_update": False,
+            }

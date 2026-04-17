@@ -2,7 +2,7 @@ import asyncio
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
-from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL, CONF_UPDATE_CHECK, UPDATE_INTERVAL, LOGGER
+from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL, UPDATE_INTERVAL, LOGGER
 from .api import BeszelApiClient, BeszelUpdateApi
 
 PLATFORMS = ["sensor", "binary_sensor", "update"]
@@ -79,26 +79,23 @@ async def async_setup_entry(hass, entry):
         update_interval=timedelta(seconds=UPDATE_INTERVAL),
     )
 
-    # Only create hub coordinator if update check is enabled
-    update_check_enabled = entry.data.get(CONF_UPDATE_CHECK, False)
     coordinator_hub = None
     
-    if update_check_enabled:
-        update_api = BeszelUpdateApi(url)
-        async def async_update_hub():
-            try:
-                return await hass.async_add_executor_job(update_api.get_update_info)
-            except Exception as err:
-                LOGGER.error(f"Error fetching hub update info: {err}")
-                raise UpdateFailed(f"Error fetching hub update info: {err}")
-
-        coordinator_hub = DataUpdateCoordinator(
-            hass,
-            LOGGER,
-            name="Beszel Hub",
-            update_method=async_update_hub,
-            update_interval=timedelta(hours=1),
-        )
+    update_api = BeszelUpdateApi(client)
+    
+    async def async_update_hub():
+        try:
+            return await hass.async_add_executor_job(update_api.get_update_info)
+        except Exception as err:
+            LOGGER.error(f"Error fetching hub update info: {err}")
+            raise UpdateFailed(f"Error fetching hub update info: {err}")
+    coordinator_hub = DataUpdateCoordinator(
+        hass,
+        LOGGER,
+        name="Beszel Hub",
+        update_method=async_update_hub,
+        update_interval=timedelta(hours=1),
+    )
 
     try:
         await coordinator.async_config_entry_first_refresh()
@@ -111,7 +108,6 @@ async def async_setup_entry(hass, entry):
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "hub": coordinator_hub,
-        "update_check_enabled": update_check_enabled,
     }
 
     try:
@@ -134,10 +130,7 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
         new_data = {**config_entry.data}
         if CONF_VERIFY_SSL not in new_data:
             new_data[CONF_VERIFY_SSL] = True
-        if CONF_UPDATE_CHECK not in new_data:
-            new_data[CONF_UPDATE_CHECK] = False
 
-        pass
         hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
 
     return True

@@ -8,11 +8,7 @@
           "url": "URL",
           "username": "Usuario (opcional)",
           "password": "Contraseña (opcional)",
-          "update_check": "Comprobar actualizaciones",
           "verify_ssl": "Verificar el certificado SSL de la API de Beszel"
-        },
-        "data_description": {
-          "update_check": "Se conecta periódicamente a github.com para comprobar nuevas versiones"
         }
       }
     }
@@ -26,11 +22,7 @@
           "url": "URL",
           "username": "Usuario (opcional)",
           "password": "Contraseña (opcional)",
-          "update_check": "Comprobar actualizaciones",
           "verify_ssl": "Verificar el certificado SSL de la API de Beszel"
-        },
-        "data_description": {
-          "update_check": "Se conecta periódicamente a github.com para comprobar nuevas versiones"
         }
       }
     }

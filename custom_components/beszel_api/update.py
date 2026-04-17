@@ -10,6 +10,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         LOGGER.debug("Update check is disabled, skipping Beszel Hub Update entity")
         return
     
+    if not hub_coordinator.data.get("check_update", False):
+        return
+    
     async_add_entities([BeszelHubUpdate(hub_coordinator, entry.entry_id, entry.data.get("url"))])
 
 class BeszelHubUpdate(CoordinatorEntity, UpdateEntity):
