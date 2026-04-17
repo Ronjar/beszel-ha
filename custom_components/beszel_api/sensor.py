@@ -28,12 +28,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 entities.append(BeszelBandwidthSensor(coordinator, system))
                 entities.append(BeszelNetworkReceiveSensor(coordinator, system))
                 entities.append(BeszelNetworkSendSensor(coordinator, system))
-                entities.append(BeszelTemperatureSensor(coordinator, system))
                 entities.append(BeszelUptimeSensor(coordinator, system))
                 entities.append(BeszelGPUSensor(coordinator, system))
 
                 # Get stats for this system
                 system_stats = stats_data.get(system.id, {})
+
+                if system.info.get("dt") is not None:
+                    entities.append(BeszelTemperatureSensor(coordinator, system))
+
+                if system_stats and 'su' in system_stats:
+                    entities.append(BeszelSWAPSensor(coordinator, system))
 
                 # Create EFS sensors if EFS data is available
                 if system_stats and 'efs' in system_stats and isinstance(system_stats['efs'], dict):
@@ -164,7 +169,37 @@ class BeszelRAMSensor(BeszelBaseSensor):
     @property
     def state_class(self):
         return SensorStateClass.MEASUREMENT
+    
 
+class BeszelSWAPSensor(BeszelBaseSensor):
+    @property
+    def unique_id(self):
+        return f"beszel_{self._system_id}_swap"
+
+    @property
+    def name(self):
+        return f"{self.system.name} SWAP" if self.system else None
+
+    @property
+    def icon(self):
+        return "mdi:chip"
+
+    @property
+    def native_value(self):
+        swap_used = self.stats_data.get("su")
+        swap_total = self.stats_data.get("s")
+        swap_usage_percent = (swap_used / swap_total * 100) if swap_total and swap_total > 0 else 0
+
+        return swap_usage_percent if self.system else None
+
+    @property
+    def native_unit_of_measurement(self):
+        return "%"
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+    
 
 class BeszelDiskSensor(BeszelBaseSensor):
 
