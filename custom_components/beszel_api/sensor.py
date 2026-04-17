@@ -211,6 +211,10 @@ class BeszelBandwidthSensor(BeszelBaseSensor):
         return self.system.info.get("bb") / 1024000 if self.system else None
 
     @property
+    def device_class(self):
+        return SensorDeviceClass.DATA_RATE
+
+    @property
     def native_unit_of_measurement(self):
         return "MB/s"
 
@@ -238,7 +242,12 @@ class BeszelNetworkReceiveSensor(BeszelBaseSensor):
 
     @property
     def native_value(self):
-        return self.stats_data.get("b")[1] / 1024 if self.system else None
+        b_data = self.stats_data.get("b")
+        return b_data[1] / 1024 if self.system and b_data else None
+
+    @property
+    def device_class(self):
+        return SensorDeviceClass.DATA_RATE
 
     @property
     def native_unit_of_measurement(self):
@@ -247,7 +256,7 @@ class BeszelNetworkReceiveSensor(BeszelBaseSensor):
     @property
     def state_class(self):
         return SensorStateClass.MEASUREMENT
-        
+
     @property
     def suggested_display_precision(self):
         return 2
@@ -267,7 +276,12 @@ class BeszelNetworkSendSensor(BeszelBaseSensor):
 
     @property
     def native_value(self):
-        return self.stats_data.get("b")[0] / 1024 if self.system else None
+        b_data = self.stats_data.get("b")
+        return b_data[0] / 1024 if self.system and b_data else None
+
+    @property
+    def device_class(self):
+        return SensorDeviceClass.DATA_RATE
 
     @property
     def native_unit_of_measurement(self):
@@ -280,7 +294,6 @@ class BeszelNetworkSendSensor(BeszelBaseSensor):
     @property
     def suggested_display_precision(self):
         return 2
-
 
 class BeszelTemperatureSensor(BeszelBaseSensor):
     @property
@@ -320,6 +333,10 @@ class BeszelUptimeSensor(BeszelBaseSensor):
     @property
     def icon(self):
         return "mdi:sort-clock-descending"
+
+    @property
+    def device_class(self):
+        return SensorDeviceClass.DURATION
 
     @property
     def native_value(self):
@@ -454,6 +471,10 @@ class BeszelRAMTotalSensor(BeszelBaseSensor):
         return self.stats_data.get("m")
 
     @property
+    def device_class(self):
+        return SensorDeviceClass.DATA_SIZE
+
+    @property
     def native_unit_of_measurement(self):
         return "GB"
 
@@ -493,6 +514,10 @@ class BeszelDiskTotalSensor(BeszelBaseSensor):
             return None
 
         return self.stats_data.get("d")
+
+    @property
+    def device_class(self):
+        return SensorDeviceClass.DATA_SIZE
 
     @property
     def native_unit_of_measurement(self):
