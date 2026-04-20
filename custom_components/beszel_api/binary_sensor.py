@@ -108,7 +108,7 @@ class BeszelSmartBinarySensor(BeszelBaseBinarySensor):
 
     @property
     def unique_id(self):
-        return f"beszel_{self._system_id}_{self._disk_name}_smart"
+        return f"beszel_{self._system_id}_{self._device_id}_smart"
 
     @property
     def name(self):
