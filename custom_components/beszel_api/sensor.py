@@ -29,7 +29,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 entities.append(BeszelNetworkReceiveSensor(coordinator, system))
                 entities.append(BeszelNetworkSendSensor(coordinator, system))
                 entities.append(BeszelUptimeSensor(coordinator, system))
-                entities.append(BeszelGPUSensor(coordinator, system))
 
                 # Get stats for this system
                 system_stats = stats_data.get(system.id, {})
@@ -39,6 +38,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
                 if system_stats and 'su' in system_stats:
                     entities.append(BeszelSWAPSensor(coordinator, system))
+
+                if system_stats and 'g' in system_stats:
+                    for gpu_key, gpu_data in system_stats['g'].items():
+                        entities.append(BeszelGPUSensor(coordinator, system, gpu_key))
 
                 # Create EFS sensors if EFS data is available
                 if system_stats and 'efs' in system_stats and isinstance(system_stats['efs'], dict):
@@ -120,13 +123,24 @@ class BeszelCPUSensor(BeszelBaseSensor):
 
 
 class BeszelGPUSensor(BeszelBaseSensor):
+    def __init__(self, coordinator, system, gpu_key):
+        super().__init__(coordinator, system)
+        self._gpu_key = gpu_key
+
+    @property
+    def gpu_data(self):
+        gpu_stats = self.stats_data.get("g", {})
+        data = gpu_stats.get(self._gpu_key, {})
+        return data if isinstance(data, dict) else {}
+
     @property
     def unique_id(self):
-        return f"beszel_{self._system_id}_gpu"
+        return f"beszel_{self._system_id}_gpu_{self._gpu_key}"
 
     @property
     def name(self):
-        return f"{self.system.name} GPU" if self.system else None
+        gpu_name = self.gpu_data.get("n")
+        return gpu_name if gpu_name else f"GPU {self._gpu_key}"
 
     @property
     def icon(self):
@@ -134,7 +148,7 @@ class BeszelGPUSensor(BeszelBaseSensor):
 
     @property
     def native_value(self):
-        return self.system.info.get("g",0.0) if self.system else None
+        return self.gpu_data.get("u") if self.system else None
 
     @property
     def native_unit_of_measurement(self):
@@ -143,6 +157,22 @@ class BeszelGPUSensor(BeszelBaseSensor):
     @property
     def state_class(self):
         return SensorStateClass.MEASUREMENT
+
+    @property
+    def extra_state_attributes(self):
+        attributes = {
+            "gpu_vram_mb": self.gpu_data.get("mt"),
+        }
+
+        gpu_memory_used = self.gpu_data.get("mu")
+        if gpu_memory_used is not None:
+            attributes["gpu_memory_used_mb"] = gpu_memory_used
+
+        gpu_power = self.gpu_data.get("p")
+        if gpu_power is not None:
+            attributes["gpu_power_w"] = gpu_power
+
+        return attributes
 
 
 class BeszelRAMSensor(BeszelBaseSensor):
@@ -204,6 +234,10 @@ class BeszelSWAPSensor(BeszelBaseSensor):
     @property
     def native_unit_of_measurement(self):
         return "%"
+    
+    @property
+    def suggested_display_precision(self):
+        return 2
 
     @property
     def state_class(self):
@@ -315,7 +349,7 @@ class BeszelNetworkReceiveSensor(BeszelBaseSensor):
 
     @property
     def native_unit_of_measurement(self):
-        return "KB/s"
+        return "kB/s"
 
     @property
     def state_class(self):
@@ -349,7 +383,7 @@ class BeszelNetworkSendSensor(BeszelBaseSensor):
 
     @property
     def native_unit_of_measurement(self):
-        return "KB/s"
+        return "kB/s"
 
     @property
     def state_class(self):
@@ -384,6 +418,16 @@ class BeszelTemperatureSensor(BeszelBaseSensor):
     def state_class(self):
         return SensorStateClass.MEASUREMENT
 
+    @property
+    def extra_state_attributes(self):
+        temperatures = self.stats_data.get("t")
+
+        attributes = {}
+        for key, value in temperatures.items():
+            attributes[f"temperature_{key}"] = value
+
+        return attributes
+
 
 class BeszelUptimeSensor(BeszelBaseSensor):
     @property
@@ -416,7 +460,7 @@ class BeszelUptimeSensor(BeszelBaseSensor):
 
     @property
     def native_unit_of_measurement(self):
-        return "minutes"
+        return "min"
 
 class BeszelEFSDiskSensor(BeszelBaseSensor):
     def __init__(self, coordinator, system, disk_name):
