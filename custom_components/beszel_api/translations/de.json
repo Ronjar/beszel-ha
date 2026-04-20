@@ -8,6 +8,7 @@
           "url": "URL",
           "username": "Benutzername (optional)",
           "password": "Passwort (optional)",
+          "update_interval": "API Updateintervall in Sekunden",
           "verify_ssl": "Beszel API SSL Zertifikat überprüfen"
         }
       }
@@ -22,6 +23,7 @@
           "url": "URL",
           "username": "Benutzername (optional)",
           "password": "Passwort (optional)",
+          "update_interval": "API Updateintervall in Sekunden",
           "verify_ssl": "Beszel API SSL Zertifikat überprüfen"
         }
       }

@@ -2,7 +2,7 @@ import asyncio
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
-from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL, UPDATE_INTERVAL, LOGGER
+from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL, CONF_UPDATE_INTERVAL, LOGGER
 from .api import BeszelApiClient, BeszelUpdateApi
 
 PLATFORMS = ["sensor", "binary_sensor", "update"]
@@ -14,6 +14,7 @@ async def async_setup_entry(hass, entry):
     username = entry.data.get(CONF_USERNAME, None)
     password = entry.data.get(CONF_PASSWORD, None)
     verify_ssl = entry.data.get(CONF_VERIFY_SSL, True)
+    update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 120)
     client = BeszelApiClient(url, username, password, verify_ssl)
 
     async def async_update_data():
@@ -76,7 +77,7 @@ async def async_setup_entry(hass, entry):
         LOGGER,
         name="Beszel API",
         update_method=async_update_data,
-        update_interval=timedelta(seconds=UPDATE_INTERVAL),
+        update_interval=timedelta(seconds=update_interval),
     )
 
     coordinator_hub = None
@@ -126,11 +127,13 @@ async def async_unload_entry(hass, entry):
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
     """Migrate old entry to the new version."""
-    if config_entry.version == 1:
+    if config_entry.version <= 2:
         new_data = {**config_entry.data}
         if CONF_VERIFY_SSL not in new_data:
             new_data[CONF_VERIFY_SSL] = True
+        if CONF_UPDATE_INTERVAL not in new_data:
+            new_data[CONF_UPDATE_INTERVAL] = 120
 
-        hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=3)
 
     return True

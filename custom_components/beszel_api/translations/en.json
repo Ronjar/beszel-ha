@@ -8,6 +8,7 @@
           "url": "URL",
           "username": "Username (optional)",
           "password": "Password (optional)",
+          "update_interval": "API update interval in seconds",
           "verify_ssl": "Verify Beszel API SSL certificate"
         }
       }
@@ -22,6 +23,7 @@
             "url": "URL",
             "username": "Username (optional)",
             "password": "Password (optional)",
+          "update_interval": "API update interval in seconds",
             "verify_ssl": "Verify Beszel API SSL certificate"
           }
         }

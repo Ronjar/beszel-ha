@@ -1,10 +1,10 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL
+from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_UPDATE_INTERVAL, CONF_VERIFY_SSL
 
 class BeszelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 2
+    VERSION = 3
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
@@ -19,6 +19,7 @@ class BeszelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_URL): str,
                 vol.Optional(CONF_USERNAME): str,
                 vol.Optional(CONF_PASSWORD): str,
+                vol.Optional(CONF_UPDATE_INTERVAL, default=120): int,
                 vol.Optional(CONF_VERIFY_SSL, default=True): bool,
             }),
             errors=errors,
@@ -59,6 +60,10 @@ class BeszelOptionsFlow(config_entries.OptionsFlow):
                     CONF_PASSWORD,
                     default=self._config_entry.data.get(CONF_PASSWORD)
                 ): str,
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL,
+                    default=self._config_entry.data.get(CONF_UPDATE_INTERVAL, 120)
+                ): int,
                 vol.Optional(
                     CONF_VERIFY_SSL,
                     default=self._config_entry.data.get(CONF_VERIFY_SSL, True)
