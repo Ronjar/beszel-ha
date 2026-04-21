@@ -8,6 +8,6 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Ronjar/beszel-ha/issues",
   "requirements": ["pocketbase>=0.15.0"],
-  "version": "0.4.0"
+  "version": "1.0.0"
 }
 
