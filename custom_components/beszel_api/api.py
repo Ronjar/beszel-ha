@@ -24,8 +24,7 @@ class BeszelApiClient:
         """Initialize the PocketBase client if not already done"""
         if self._client is None:
             try:
-                httpx_client = httpx.Client(verify=self._verify_ssl)
-                self._client = PocketBase(self._url, http_client=httpx_client)
+                self._client = PocketBase(self._url, verify=self._verify_ssl)
                 if self._username and self._password:
                     self._client.collection("users").auth_with_password(
                         self._username,

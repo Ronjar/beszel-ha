@@ -145,6 +145,11 @@ class BeszelGPUSensor(BeszelBaseSensor):
     @property
     def icon(self):
         return "mdi:expansion-card"
+    
+    @property
+    def available(self):
+        gpu_usage = self.gpu_data.get("u") if self.gpu_data else None
+        return gpu_usage is not None
 
     @property
     def native_value(self):
@@ -222,14 +227,20 @@ class BeszelSWAPSensor(BeszelBaseSensor):
     @property
     def icon(self):
         return "mdi:chip"
+    
+    @property
+    def available(self):
+        swap_used = self.stats_data.get("su")
+        swap_total = self.stats_data.get("s")
+        return swap_used is not None and swap_total is not None and swap_total > 0
 
     @property
     def native_value(self):
         swap_used = self.stats_data.get("su")
         swap_total = self.stats_data.get("s")
-        swap_usage_percent = (swap_used / swap_total * 100) if swap_total and swap_total > 0 else 0
-
-        return swap_usage_percent if self.system else None
+        if self.available:
+            return (swap_used / swap_total * 100)
+        return None
 
     @property
     def native_unit_of_measurement(self):
@@ -303,10 +314,16 @@ class BeszelBandwidthSensor(BeszelBaseSensor):
     @property
     def icon(self):
         return "mdi:router-network"
+    
+    @property
+    def available(self):
+        bandwidth = self.system.info.get("bb") if self.system else None
+        return bandwidth is not None
 
     @property
     def native_value(self):
-        return self.system.info.get("bb") / 1024000 if self.system else None
+        bandwidth = self.system.info.get("bb") if self.system else None
+        return bandwidth / 1024000 if bandwidth is not None else None
 
     @property
     def device_class(self):
@@ -401,6 +418,11 @@ class BeszelTemperatureSensor(BeszelBaseSensor):
     @property
     def name(self):
         return f"{self.system.name} temperature" if self.system else None
+    
+    @property
+    def available(self):
+        temperature = self.system.info.get("dt") if self.system else None
+        return temperature is not None
 
     @property
     def native_value(self):
@@ -492,12 +514,16 @@ class BeszelEFSDiskSensor(BeszelBaseSensor):
 
         # Calculate disk usage percentage
         if total_space and used_space and total_space > 0:
-            return round((used_space / total_space) * 100, 2)
+            return (used_space / total_space) * 100
         return None
 
     @property
     def native_unit_of_measurement(self):
         return "%"
+    
+    @property
+    def suggested_display_precision(self):
+        return 2
 
     @property
     def state_class(self):
