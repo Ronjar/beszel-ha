@@ -1,9 +1,56 @@
+import re
+
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorDeviceClass,
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, SMART_CURATED_ATTRIBUTES
+
+
+def _normalize_smart_name(name: str) -> str:
+    normalized = name.strip()
+    if "_" not in normalized:
+        normalized = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", normalized)
+        normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", normalized)
+    return (
+        normalized.lower()
+        .replace(" ", "_")
+        .replace(".", "")
+        .replace("-", "_")
+        .replace("/", "_")
+    )
+
+
+def _curated_smart_attributes(attributes: list) -> dict:
+    result = {}
+    failed = []
+
+    for attr in attributes:
+        name = attr.get("n")
+        if not name:
+            continue
+        if attr.get("wf"):
+            failed.append(name)
+
+        key = _normalize_smart_name(name)
+        if key not in SMART_CURATED_ATTRIBUTES:
+            continue
+
+        raw_string = attr.get("rs")
+        raw_value = attr.get("rv")
+        if raw_string not in (None, ""):
+            result[f"smart_{key}"] = raw_string
+        elif raw_value is not None:
+            result[f"smart_{key}"] = raw_value
+
+        if raw_value is not None:
+            result[f"smart_{key}_raw"] = raw_value
+
+    if failed:
+        result["failed_attributes"] = failed
+
+    return result
 
 async def async_setup_entry(hass, entry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
@@ -202,8 +249,13 @@ class BeszelSmartBinarySensor(BeszelBaseBinarySensor):
         # Device path
         attributes['device'] = self._device_name
         
-        # Health state
         state = device_data.get('state', '')
         attributes['health_state'] = state
+
+        updated = device_data.get('updated')
+        if updated:
+            attributes['updated'] = updated
+
+        attributes.update(_curated_smart_attributes(device_data.get('attributes') or []))
 
         return attributes

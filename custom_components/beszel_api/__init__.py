@@ -62,6 +62,8 @@ async def async_setup_entry(hass, entry):
                             'type': getattr(device, 'type', ''),
                             'serial': getattr(device, 'serial', ''),
                             'firmware': getattr(device, 'firmware', ''),
+                            'attributes': getattr(device, 'attributes', []) or [],
+                            'updated': getattr(device, 'updated', None),
                         })
                 LOGGER.debug(f"Loaded S.M.A.R.T. data for {len(all_smart)} devices")
             except Exception as e:
