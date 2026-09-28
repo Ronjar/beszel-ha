@@ -21,17 +21,20 @@ class BeszelApiClient:
         self._client = None
 
     def _ensure_client(self):
-        """Initialize the PocketBase client if not already done"""
+        """Initialize or re-authenticate the PocketBase client if session is invalid"""
         if self._client is None:
+            self._client = PocketBase(self._url, verify=self._verify_ssl)
+
+        if not self._client.auth_store.is_valid:
             try:
-                self._client = PocketBase(self._url, verify=self._verify_ssl)
                 if self._username and self._password:
                     self._client.collection("users").auth_with_password(
                         self._username,
                         self._password,
                     )
+                    LOGGER.info("Re-authenticated with Beszel Hub")
             except Exception as e:
-                LOGGER.error(f"Failed to initialize PocketBase client: {e}")
+                LOGGER.error(f"Failed to authenticate with Beszel Hub: {e}")
                 raise
 
     def get_systems(self):
