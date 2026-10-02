@@ -52,6 +52,10 @@ class BeszelBaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
         return None
 
     @property
+    def available(self):
+        return super().available and self.system is not None
+
+    @property
     def device_info(self):
         sys = self.system
         if sys is None:

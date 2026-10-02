@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN, CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_VERIFY_SSL, CONF_UPDATE_INTERVAL, LOGGER
 from .api import BeszelApiClient, BeszelUpdateApi
@@ -23,7 +24,7 @@ async def async_setup_entry(hass, entry):
 
             if not systems:
                 LOGGER.warning("No systems found in Beszel API")
-                return {"systems": [], "stats": {}}
+                return {"systems": [], "stats": {}, "smart_devices": {}}
 
             # Create a stats dictionary to store stats by system ID
             stats_data = {}
@@ -68,6 +69,8 @@ async def async_setup_entry(hass, entry):
                 LOGGER.warning(f"Failed to fetch S.M.A.R.T. devices: {e}")
 
             return {"systems": systems, "stats": stats_data, "smart_devices": smart_devices}
+        except ConfigEntryAuthFailed:
+            raise
         except Exception as err:
             LOGGER.error(f"Error fetching systems: {err}")
             raise UpdateFailed(f"Error fetching systems: {err}")
@@ -87,6 +90,8 @@ async def async_setup_entry(hass, entry):
     async def async_update_hub():
         try:
             return await hass.async_add_executor_job(update_api.get_update_info)
+        except ConfigEntryAuthFailed:
+            raise
         except Exception as err:
             LOGGER.error(f"Error fetching hub update info: {err}")
             raise UpdateFailed(f"Error fetching hub update info: {err}")

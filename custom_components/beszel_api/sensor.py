@@ -82,6 +82,10 @@ class BeszelBaseSensor(CoordinatorEntity, SensorEntity):
         return self.coordinator.data.get('stats', {}).get(self._system_id, {})
 
     @property
+    def available(self):
+        return super().available and self.system is not None
+
+    @property
     def device_info(self):
         sys = self.system
         if sys is None:
@@ -148,6 +152,8 @@ class BeszelGPUSensor(BeszelBaseSensor):
     
     @property
     def available(self):
+        if not super().available:
+            return False
         gpu_usage = self.gpu_data.get("u") if self.gpu_data else None
         return gpu_usage is not None
 
@@ -230,6 +236,8 @@ class BeszelSWAPSensor(BeszelBaseSensor):
     
     @property
     def available(self):
+        if not super().available:
+            return False
         swap_used = self.stats_data.get("su")
         swap_total = self.stats_data.get("s")
         return swap_used is not None and swap_total is not None and swap_total > 0
@@ -317,6 +325,8 @@ class BeszelBandwidthSensor(BeszelBaseSensor):
     
     @property
     def available(self):
+        if not super().available:
+            return False
         bandwidth = self.system.info.get("bb") if self.system else None
         return bandwidth is not None
 
@@ -421,6 +431,8 @@ class BeszelTemperatureSensor(BeszelBaseSensor):
     
     @property
     def available(self):
+        if not super().available:
+            return False
         temperature = self.system.info.get("dt") if self.system else None
         return temperature is not None
 
