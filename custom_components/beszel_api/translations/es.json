@@ -11,7 +11,26 @@
           "update_interval": "Intervalo de actualización de la API en segundos",
           "verify_ssl": "Verificar el certificado SSL de la API de Beszel"
         }
+      },
+      "reauth_confirm": {
+        "title": "Reautenticar con Beszel Hub",
+        "description": "Introduce tus nuevas credenciales para el Beszel Hub",
+        "data": {
+          "username": "Usuario (opcional)",
+          "password": "Contraseña"
+        },
+        "error": {
+          "invalid_auth": "Usuario o contraseña no válidos",
+          "cannot_connect": "Error al conectar con Beszel Hub"
+        }
       }
+    },
+    "error": {
+      "invalid_auth": "Usuario o contraseña no válidos",
+      "cannot_connect": "Error al conectar con Beszel Hub"
+    },
+    "abort": {
+      "reauth_successful": "La reautenticación se ha realizado con éxito"
     }
   },
   "options": {

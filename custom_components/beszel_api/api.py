@@ -41,7 +41,7 @@ class BeszelApiClient:
                     LOGGER.info("Authenticated with Beszel Hub")
                 except Exception as e:
                     if getattr(e, "status", None) == 400:
-                        raise ConfigEntryAuthFailed(f"Invalid username or password for Beszel Hub: {e}") from e
+                        raise ConfigEntryAuthFailed("Invalid username or password for Beszel Hub") from e
                     LOGGER.error(f"Failed to authenticate with Beszel Hub: {e}")
                     raise
 

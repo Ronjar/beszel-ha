@@ -11,7 +11,26 @@
           "update_interval": "API Updateintervall in Sekunden",
           "verify_ssl": "Beszel API SSL Zertifikat überprüfen"
         }
+      },
+      "reauth_confirm": {
+        "title": "Beszel Hub neu authentifizieren",
+        "description": "Gib deine neuen Anmeldedaten für den Beszel Hub ein",
+        "data": {
+          "username": "Benutzername (optional)",
+          "password": "Passwort"
+        },
+        "error": {
+          "invalid_auth": "Ungültiger Benutzername oder Passwort",
+          "cannot_connect": "Verbindung zum Beszel Hub fehlgeschlagen"
+        }
       }
+    },
+    "error": {
+      "invalid_auth": "Ungültiger Benutzername oder Passwort",
+      "cannot_connect": "Verbindung zum Beszel Hub fehlgeschlagen"
+    },
+    "abort": {
+      "reauth_successful": "Neu-Authentifizierung war erfolgreich"
     }
   },
   "options": {

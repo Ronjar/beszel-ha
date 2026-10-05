@@ -11,7 +11,26 @@
           "update_interval": "API update interval in seconds",
           "verify_ssl": "Verify Beszel API SSL certificate"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with Beszel Hub",
+        "description": "Enter your updated credentials for the Beszel Hub",
+        "data": {
+          "username": "Username (optional)",
+          "password": "Password"
+        },
+        "error": {
+          "invalid_auth": "Invalid username or password",
+          "cannot_connect": "Failed to connect to Beszel Hub"
+        }
       }
+    },
+    "error": {
+      "invalid_auth": "Invalid username or password",
+      "cannot_connect": "Failed to connect to Beszel Hub"
+    },
+    "abort": {
+      "reauth_successful": "Re-authentication was successful"
     }
   },
   "options": {
