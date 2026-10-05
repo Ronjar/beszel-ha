@@ -18,10 +18,6 @@
         "data": {
           "username": "Usuario (opcional)",
           "password": "Contraseña"
-        },
-        "error": {
-          "invalid_auth": "Usuario o contraseña no válidos",
-          "cannot_connect": "Error al conectar con Beszel Hub"
         }
       }
     },
