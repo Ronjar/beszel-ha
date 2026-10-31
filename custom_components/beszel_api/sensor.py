@@ -1,8 +1,11 @@
+import re
+
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
     SensorStateClass,
 )
+from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.icon import icon_for_battery_level
 
@@ -12,6 +15,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator = data["coordinator"]
     entities = []
+    known_gpu_sensors = set()
 
     try:
         # Get systems and stats from coordinator data
@@ -39,9 +43,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 if system_stats and 'su' in system_stats:
                     entities.append(BeszelSWAPSensor(coordinator, system))
 
-                if system_stats and 'g' in system_stats:
-                    for gpu_key, gpu_data in system_stats['g'].items():
-                        entities.append(BeszelGPUSensor(coordinator, system, gpu_key))
+                entities.extend(_build_gpu_sensors(coordinator, system, known_gpu_sensors))
 
                 # Create EFS sensors if EFS data is available
                 if system_stats and 'efs' in system_stats and isinstance(system_stats['efs'], dict):
@@ -63,6 +65,126 @@ async def async_setup_entry(hass, entry, async_add_entities):
     except Exception as e:
         LOGGER.error(f"Failed to setup sensors: {e}")
         raise
+
+    @callback
+    def _async_add_new_gpu_sensors():
+        """Add sensors for GPUs (or GPU metrics) that appear after the initial setup."""
+        if not coordinator.data:
+            return
+        new_entities = []
+        for system in coordinator.data.get("systems", []):
+            try:
+                new_entities.extend(_build_gpu_sensors(coordinator, system, known_gpu_sensors))
+            except Exception as e:
+                LOGGER.error(f"Failed to create GPU sensors for system {getattr(system, 'name', 'unknown')}: {e}")
+        if new_entities:
+            LOGGER.info(f"Adding {len(new_entities)} new GPU sensors")
+            async_add_entities(new_entities)
+
+    entry.async_on_unload(coordinator.async_add_listener(_async_add_new_gpu_sensors))
+
+
+def _get_gpu_stats(stats_data):
+    gpus = (stats_data or {}).get("g")
+    return gpus if isinstance(gpus, dict) else {}
+
+
+def _get_gpu_temperature(stats_data, gpu_data):
+    temperatures = (stats_data or {}).get("t")
+    gpu_name = gpu_data.get("n")
+    if not isinstance(temperatures, dict) or not gpu_name:
+        return None
+    return temperatures.get(gpu_name)
+
+
+def _gpu_memory_percent(gpu_data):
+    total = gpu_data.get("mt")
+    if not total:
+        return None
+    return gpu_data.get("mu", 0) / total * 100
+
+
+# Beszel omits zero values for "mu", "p" and "pp" (omitzero), so a missing key
+# on a reported GPU means 0 once we know the GPU supports that metric.
+GPU_METRICS = {
+    "usage": {
+        "label": "Usage",
+        "icon": "mdi:expansion-card",
+        "unit": "%",
+        "precision": 1,
+        "supported": lambda gpu, stats: True,
+        "value": lambda gpu, stats: gpu.get("u"),
+    },
+    "memory_used": {
+        "label": "VRAM Used",
+        "icon": "mdi:memory",
+        "unit": "MB",
+        "device_class": SensorDeviceClass.DATA_SIZE,
+        "precision": 0,
+        "supported": lambda gpu, stats: "mu" in gpu or "mt" in gpu,
+        "value": lambda gpu, stats: gpu.get("mu", 0),
+    },
+    "memory_total": {
+        "label": "VRAM Total",
+        "icon": "mdi:memory",
+        "unit": "MB",
+        "device_class": SensorDeviceClass.DATA_SIZE,
+        "precision": 0,
+        "supported": lambda gpu, stats: "mt" in gpu,
+        "value": lambda gpu, stats: gpu.get("mt"),
+    },
+    "memory_percent": {
+        "label": "VRAM Usage",
+        "icon": "mdi:memory",
+        "unit": "%",
+        "precision": 1,
+        "supported": lambda gpu, stats: "mt" in gpu,
+        "value": lambda gpu, stats: _gpu_memory_percent(gpu),
+    },
+    "power": {
+        "label": "Power",
+        "icon": "mdi:flash",
+        "unit": "W",
+        "device_class": SensorDeviceClass.POWER,
+        "precision": 2,
+        "supported": lambda gpu, stats: "p" in gpu,
+        "value": lambda gpu, stats: gpu.get("p", 0),
+    },
+    "power_package": {
+        "label": "Package Power",
+        "icon": "mdi:flash",
+        "unit": "W",
+        "device_class": SensorDeviceClass.POWER,
+        "precision": 2,
+        "supported": lambda gpu, stats: "pp" in gpu,
+        "value": lambda gpu, stats: gpu.get("pp", 0),
+    },
+    "temperature": {
+        "label": "Temperature",
+        "unit": "°C",
+        "device_class": SensorDeviceClass.TEMPERATURE,
+        "precision": 1,
+        "supported": lambda gpu, stats: _get_gpu_temperature(stats, gpu) is not None,
+        "value": lambda gpu, stats: _get_gpu_temperature(stats, gpu),
+    },
+}
+
+
+def _build_gpu_sensors(coordinator, system, known_sensors):
+    """Create sensors for every GPU (any number) reported in the latest system stats."""
+    stats_data = coordinator.data.get("stats", {}).get(system.id, {}) or {}
+    entities = []
+    for gpu_key, gpu_data in _get_gpu_stats(stats_data).items():
+        if not isinstance(gpu_data, dict):
+            continue
+        for metric, description in GPU_METRICS.items():
+            marker = (system.id, str(gpu_key), metric)
+            if marker in known_sensors or not description["supported"](gpu_data, stats_data):
+                continue
+            known_sensors.add(marker)
+            entities.append(BeszelGPUSensor(coordinator, system, gpu_key, metric))
+            LOGGER.debug(f"Created GPU {metric} sensor for {system.name} - GPU {gpu_key}")
+    return entities
 
 class BeszelBaseSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, system):
@@ -127,43 +249,67 @@ class BeszelCPUSensor(BeszelBaseSensor):
 
 
 class BeszelGPUSensor(BeszelBaseSensor):
-    def __init__(self, coordinator, system, gpu_key):
+    """A single metric of a single GPU. One instance is created per GPU and metric."""
+
+    def __init__(self, coordinator, system, gpu_key, metric="usage"):
         super().__init__(coordinator, system)
-        self._gpu_key = gpu_key
+        self._gpu_key = str(gpu_key)
+        self._metric = metric
+        self._description = GPU_METRICS[metric]
 
     @property
     def gpu_data(self):
-        gpu_stats = self.stats_data.get("g", {})
-        data = gpu_stats.get(self._gpu_key, {})
-        return data if isinstance(data, dict) else {}
+        data = _get_gpu_stats(self.stats_data).get(self._gpu_key)
+        return data if isinstance(data, dict) else None
+
+    @property
+    def gpu_name(self):
+        gpu_data = self.gpu_data or {}
+        return gpu_data.get("n") or f"GPU {self._gpu_key}"
 
     @property
     def unique_id(self):
-        return f"beszel_{self._system_id}_gpu_{self._gpu_key}"
+        # The usage sensor keeps its original unique_id for backwards compatibility
+        if self._metric == "usage":
+            return f"beszel_{self._system_id}_gpu_{self._gpu_key}"
+        return f"beszel_{self._system_id}_gpu_{self._gpu_key}_{self._metric}"
 
     @property
     def name(self):
-        gpu_name = self.gpu_data.get("n")
-        return gpu_name if gpu_name else f"GPU {self._gpu_key}"
+        if not self.system:
+            return None
+        return f"{self.system.name} {self.gpu_name} {self._description['label']}"
 
     @property
     def icon(self):
-        return "mdi:expansion-card"
-    
+        return self._description.get("icon")
+
     @property
     def available(self):
-        if not super().available:
+        if not super().available or self.gpu_data is None:
             return False
-        gpu_usage = self.gpu_data.get("u") if self.gpu_data else None
-        return gpu_usage is not None
+        if self._metric == "usage":
+            return self.gpu_data.get("u") is not None
+        return True
 
     @property
     def native_value(self):
-        return self.gpu_data.get("u") if self.system else None
+        gpu_data = self.gpu_data
+        if gpu_data is None:
+            return None
+        return self._description["value"](gpu_data, self.stats_data)
+
+    @property
+    def device_class(self):
+        return self._description.get("device_class")
 
     @property
     def native_unit_of_measurement(self):
-        return "%"
+        return self._description["unit"]
+
+    @property
+    def suggested_display_precision(self):
+        return self._description.get("precision")
 
     @property
     def state_class(self):
@@ -171,17 +317,28 @@ class BeszelGPUSensor(BeszelBaseSensor):
 
     @property
     def extra_state_attributes(self):
+        gpu_data = self.gpu_data or {}
         attributes = {
-            "gpu_vram_mb": self.gpu_data.get("mt"),
+            "gpu_id": self._gpu_key,
+            "gpu_name": self.gpu_name,
         }
+        if self._metric != "usage":
+            return attributes
 
-        gpu_memory_used = self.gpu_data.get("mu")
+        attributes["gpu_vram_mb"] = gpu_data.get("mt")
+
+        gpu_memory_used = gpu_data.get("mu")
         if gpu_memory_used is not None:
             attributes["gpu_memory_used_mb"] = gpu_memory_used
 
-        gpu_power = self.gpu_data.get("p")
+        gpu_power = gpu_data.get("p")
         if gpu_power is not None:
             attributes["gpu_power_w"] = gpu_power
+
+        engines = gpu_data.get("e")
+        if isinstance(engines, dict):
+            for engine, value in engines.items():
+                attributes[f"engine_{re.sub(r'[^a-z0-9]+', '_', engine.lower()).strip('_')}"] = value
 
         return attributes
 
