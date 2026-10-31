@@ -23,6 +23,13 @@ After installing the following entities will exposed as sensors (more to come):
 - Bandwidth (Mbit/s)
 - RAM (Percentage)
 - Battery (Percentage)
+- GPU (one set of sensors per GPU, any number of GPUs per machine):
+  - Usage (Percentage, engine utilization as attributes if reported)
+  - VRAM used / total (MB) and VRAM usage (Percentage)
+  - Power and package power (W), if reported by the agent
+  - Temperature (°C), if reported by the agent
+
+GPU sensors are named after the GPU reported by Beszel, e.g. `sensor.test_nvidia_geforce_rtx_3090_usage`. GPUs that start reporting after Home Assistant has started are added automatically.
 
 For example if your machine is named *test*, CPU will be available as ```sensor.test_cpu```
 
