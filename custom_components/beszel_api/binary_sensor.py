@@ -1,11 +1,35 @@
 import re
+from datetime import datetime, timezone
 
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorDeviceClass,
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 from .const import DOMAIN, LOGGER, SMART_CURATED_ATTRIBUTES
+
+
+def _to_local_time(value):
+    """Convert a PocketBase timestamp to a plain local-time string.
+
+    The PocketBase SDK strips the timezone suffix from date fields and returns a
+    naive datetime holding UTC values, which Home Assistant then displays verbatim
+    (e.g. 23:18 UTC instead of 09:18 local). Convert to the Home Assistant
+    timezone so every user sees the time in their own timezone.
+    """
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        try:
+            dt = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+        except ValueError:
+            return value
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt_util.as_local(dt).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _normalize_smart_name(name: str) -> str:
@@ -37,18 +61,12 @@ def _curated_smart_attributes(attributes: list) -> dict:
         if key not in SMART_CURATED_ATTRIBUTES:
             continue
 
-        raw_string = attr.get("rs")
         raw_value = attr.get("rv")
-        if raw_string not in (None, ""):
-            result[f"smart_{key}"] = raw_string
-        elif raw_value is not None:
-            result[f"smart_{key}"] = raw_value
-
         if raw_value is not None:
-            result[f"smart_{key}_raw"] = raw_value
+            result[f"smart_attr_{key}"] = raw_value
 
     if failed:
-        result["failed_attributes"] = failed
+        result["smart_attr_failed"] = failed
 
     return result
 
@@ -258,7 +276,7 @@ class BeszelSmartBinarySensor(BeszelBaseBinarySensor):
 
         updated = device_data.get('updated')
         if updated:
-            attributes['updated'] = updated
+            attributes['updated'] = _to_local_time(updated)
 
         attributes.update(_curated_smart_attributes(device_data.get('attributes') or []))
 
