@@ -130,6 +130,24 @@ async def async_unload_entry(hass, entry):
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
 
+async def async_remove_config_entry_device(hass, config_entry, device_entry):
+    """Allow removing a device whose system the Beszel hub no longer lists."""
+    data = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
+    if not data:
+        return False
+    coordinator = data["coordinator"]
+    # Only a successful refresh that still lists systems can show one is gone.
+    if not coordinator.last_update_success or not coordinator.data:
+        return False
+    live_ids = {system.id for system in coordinator.data.get("systems", [])}
+    if not live_ids:
+        return False
+    for domain, identifier in device_entry.identifiers:
+        # The hub device and every device of a listed system stay.
+        if domain == DOMAIN and (identifier == config_entry.entry_id or identifier in live_ids):
+            return False
+    return True
+
 async def async_migrate_entry(hass, config_entry: ConfigEntry):
     """Migrate old entry to the new version."""
     if config_entry.version <= 2:
